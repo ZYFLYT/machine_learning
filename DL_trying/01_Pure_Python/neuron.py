@@ -15,23 +15,23 @@ class DenseLayer:
                 [random.uniform(-limit_he, limit_he) for _ in range(n_in)]
                 for _ in range(n_out)
             ]
-        elif activation == "sigmoid" or "tanh":
+        elif activation == "sigmoid" or activation == "tanh":
             self.W = [
                 [random.uniform(-limit_xavier, limit_xavier) for _ in range(n_in)]
                 for _ in range(n_out)
             ]
 
-        self.B = [0.0] * n_out
+        self.b = [0.0] * n_out
         self.activation = activation
         self.inputs = None
         self.Z = None
         self.A = None
 
-    def forword(self, X):
+    def forward(self, X):
         self.inputs = X
         self.Z = [
-            sum(X[j] * self.W[i][j] for j in range(len(X))) + self.B[i]
-            for i in range(len(self.B))
+            sum(X[j] * self.W[i][j] for j in range(len(X))) + self.b[i]
+            for i in range(len(self.b))
         ]
 
         # 激活函数
@@ -48,21 +48,40 @@ class DenseLayer:
 
         return self.A
 
-    def backword(self, dA):
+    def backward(self, dA):
         """注意链式法则,dZ是指L对于Z的偏导,利用的链式法则,并且这里最后的损失函数单独写在训练中"""
         dZ = [0.0] * len(self.Z)
+
         for i in range(len(self.Z)):
             if self.activation == "relu":
                 dZ[i] = dA[i] * 1 if self.Z[i] > 0 else 0.0
-            elif self.activation == "sofmax":
-                dZ[i]
+            elif self.activation == "sigmoid":
+                da_z = self.A[i]
+                dZ[i] = dA[i] * da_z * (1 - da_z)
             elif self.activation == "softmax":
-                # Softmax单独激活的雅可比矩阵，dZ = dA @ J_softmax
-                # J_ij = a_i*(δ_ij - a_j)
-                a_i = self.A[i]
                 s = 0.0
-                for k in range(len(self.Z)):
-                    delta = 1.0 if k == i else 0.0
-                    a_k = self.A[k]
-                    s += dA[k] * a_k * (delta - a_i)
+                for j in range(len(self.Z)):
+                    alpha = 1.0 if j == i else 0.0
+                    s += dA[j] * self.A[j] * (alpha - self.A[i])
                 dZ[i] = s
+
+        self.dW = [
+            [self.inputs[i] * dZ[j] for i in range(len(self.inputs))]
+            for j in range(len(self.Z))
+        ]
+
+        self.db = dZ
+
+        dA_prev = [
+            sum(self.W[i][j] * dZ[i] for i in range(len(dZ)))
+            for j in range(len(self.inputs))
+        ]
+
+        return dA_prev
+
+    def update(self, lr):
+        for i in range(len(self.W)):
+            for j in range(len(self.W[0])):
+                self.W[i][j] -= lr * self.dW[i][j]
+        for j in range(len(self.b)):
+            self.b[j] -= lr * self.db[j]
