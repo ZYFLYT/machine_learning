@@ -1,9 +1,13 @@
 import math
 import random
 
+"""先行解释，这个文件的是实现了雅可比完整softmax，单独对softmax求导，这不是主流的方法"""
+
 
 class DenseLayer:
     """手搓全连接层"""
+
+    """【雅可比版本】全连接层：Softmax单独求导，完整雅可比矩阵实现"""
 
     def __init__(self, n_in, n_out, activation="relu"):
         # HE初始化适用于ReLu
@@ -15,7 +19,7 @@ class DenseLayer:
                 [random.uniform(-limit_he, limit_he) for _ in range(n_in)]
                 for _ in range(n_out)
             ]
-        elif activation == "sigmoid" or activation == "tanh":
+        elif activation in ["softmax", "sigmoid", "tanh"]:
             self.W = [
                 [random.uniform(-limit_xavier, limit_xavier) for _ in range(n_in)]
                 for _ in range(n_out)

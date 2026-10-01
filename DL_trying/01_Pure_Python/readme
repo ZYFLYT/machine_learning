@@ -1,1 +1,53 @@
-这是不借助numpy和pytorch，纯手写简易神经网络
+## 这是不借助numpy和pytorch，纯手写简易神经网络
+
+# 01_Pure_Python 两套纯手搓神经网络对比
+> 统一下标约定（两套代码完全一致）
+> W[i][j]：i=当前层输出神经元，j=输入神经元，W形状 [n_out][n_in]
+> Z[i] = sum_{j} X[j] * W[i][j] + b[i]
+
+## 两套文件
+1. neuron_jacobi.py ｜雅可比完整softmax版本（学习原理用）
+2. neuron_standard.py｜主流工程简化版本（PyTorch底层思路）
+
+## 核心区别
+### 1. Softmax导数计算位置
+✅ **雅可比版本 neuron_jacobi.py**
+- 导数计算写在 DenseLayer.backward() 内部
+- backward入参：`dA = ∂L/∂A`，损失对softmax输出A的梯度
+- 内部双层for循环，手动实现雅可比矩阵乘法：$dZ = dA @ J$
+- 特点：DenseLayer是独立激活模块。**和损失函数解耦**。
+  只要你提供 ∂L/∂A，不管损失是MSE还是交叉熵，都能正确反向传播。
+- 缺点：双层循环，维度变大，计算开销明显增加，训练速度慢。
+
+✅ **简化版本 neuron_standard.py**
+- 导数计算提前放到 train.py 训练脚本
+- train.py直接算出合并化简结果：$\boldsymbol{dZ = A-Y}$
+- 传入layer.backward，参数名虽然叫dA，但里面存的是dZ
+- softmax分支直接赋值 `dZ[i] = dA[i]`，**去掉雅可比双层循环**
+- 特点：**强绑定交叉熵损失**。如果损失换成MSE，A-Y公式直接失效，梯度错误。
+- 优点：没有内层循环，计算速度更快，工业框架全部采用这个方案。
+
+### 2. 数学等价性（重点）
+> 当损失函数是**单样本交叉熵**时：
+> 雅可比矩阵循环算出的dZ，**严格等于A-Y**，两套代码数学结果完全一样。
+> 简化版本不是近似，只是提前做代数化简。
+
+> 当损失不是交叉熵：
+> 雅可比版本仍然可以正常工作；简化版本不能使用。
+
+### 3. 激活函数共用部分
+relu、sigmoid：两套代码**完全一模一样**，逐元素求导，没有任何区别。
+只有softmax分支逻辑不一样。
+
+### 4. 使用建议
+1. 学习原理、考研手推公式：跑 neuron_jacobi.py，看懂雅可比矩阵
+2. 工程实战、快速训练网络：跑 neuron_standard.py，和PyTorch逻辑对齐
+
+### 5. 运行方式
+```bash
+# 雅可比版本
+python train_jacobi.py
+# 简化版本
+python train_standard.py
+# 评估两个模型
+python evaluate.py
