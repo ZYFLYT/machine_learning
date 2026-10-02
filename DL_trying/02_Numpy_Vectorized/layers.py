@@ -13,6 +13,6 @@ class DenseLayer:
 
     def backward(self, dZ):
         m = self.A_prev.shape[0]
-        self.dW = 1 / m * np.dot(self.Aprev.T, dZ)
+        self.dW = 1 / m * np.dot(self.A_prev.T, dZ)
         self.db = 1 / m * np.sum(dZ, axis=0, keepdims=True)
         return np.dot(dZ, self.W.T)

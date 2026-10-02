@@ -20,9 +20,7 @@ class Sigmoid:
         return self.A
 
     def backward(self, dA):
-        dZ = np.np.copy(dA)
-        dZ[self.A <= 0] = 0
-        return dZ
+        return dA * self.A * (1.0 - self.A)
 
 
 class Tanh:
@@ -47,8 +45,8 @@ class SoftmaxCrossEntropy:
         return loss
 
     def backward(self, Y):
-        m = Y.shape[1]
-        return (self.A - Y) / m
+        # m = Y.shape[0]
+        return self.A - Y
 
 
 def one_hot(y, num_classes=10):
